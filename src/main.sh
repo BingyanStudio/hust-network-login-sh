@@ -31,6 +31,14 @@ check_cmd_curl()
     command -v curl >/dev/null 2>&1
 }
 
+check_cmd_wget()
+{
+    command -v wget >/dev/null 2>&1 || return 1
+
+    # 部分精简版 BusyBox wget 没有 POST 支持。
+    wget --help 2>&1 | grep -q -- '--post-data'
+}
+
 check_cmd_nc()
 {
     command -v nc >/dev/null 2>&1
@@ -40,19 +48,34 @@ check_cmd()
 {
     check_cmd_common
 
-    case "$HTTP_BACKEND" in
+    case "${HTTP_BACKEND:-auto}" in
         auto)
             if check_cmd_curl; then
                 HTTP_BACKEND=curl
+            elif check_cmd_wget; then
+                HTTP_BACKEND=wget
             elif check_cmd_nc; then
                 HTTP_BACKEND=nc
             else
-                die 'Cannot find curl or nc'
+                die "Cannot find a usable curl, wget, or nc"
             fi
             ;;
-        curl) check_cmd_curl || die 'Cannot find curl' ;;
-        nc) check_cmd_nc || die 'Cannot find nc' ;;
-        *) die 'HTTP_BACKEND must be auto, curl, or nc' ;;
+        curl)
+            check_cmd_curl || die "Cannot find curl"
+            HTTP_BACKEND=curl
+            ;;
+        wget)
+            check_cmd_wget ||
+                die "wget is unavailable or lacks --post-data support"
+            HTTP_BACKEND=wget
+            ;;
+        nc)
+            check_cmd_nc || die "Cannot find nc"
+            HTTP_BACKEND=nc
+            ;;
+        *)
+            die "HTTP_BACKEND must be auto, curl, wget, or nc"
+            ;;
     esac
 
     HTTP_GET=${HTTP_BACKEND}_get
@@ -87,6 +110,26 @@ curl_post()
         -H 'Connection: close' -H 'Accept-Encoding: identity' \
         -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
         --data-raw "$4" -- "http://$1:$2$3"
+}
+
+wget_get()
+{
+    wget -q -O - -T 15 -t 1 -Y off \
+        -U hust-network-login \
+        --header 'Connection: close' \
+        --header 'Accept-Encoding: identity' \
+        -- "http://$1:$2/"
+}
+
+wget_post()
+{
+    wget -q -O - -T 15 -t 1 -Y off \
+        -U hust-network-login \
+        --header 'Connection: close' \
+        --header 'Accept-Encoding: identity' \
+        --header 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
+        --post-data "$4" \
+        -- "http://$1:$2$3"
 }
 
 nc_skip_header()
