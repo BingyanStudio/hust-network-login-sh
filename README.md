@@ -3,7 +3,7 @@
 # HUST-Network-Login-sh
 
 极简主义的华中科技大学校园网络认证工具，支持有线和无线网络。下载即用，大小约为 2.1k，有依赖。为路由器等嵌入式设备开发，支持所有带
-posix shell 和 unix2dos、nc 等工具的主流硬件软件平台。No Python, Has Dependencies, Is Bullshit.
+posix shell 和 `oneOf([unix2dos, nc], [busybox], [wget], [curl])` 工具的主流硬件软件平台。No Python, Has Dependencies, Is Bullshit.
 
 ## 使用
 
@@ -38,9 +38,11 @@ cp src/main.sh ./hust-network-login-sh
 
 ## 依赖
 
-`nc` `unix2dos` `awk` `grep` `printf` `sed` `sleep` `od` `bc` 以及一个 POSIX 兼容的 `sh`。
+`awk` `grep` `printf` `sed` `sleep` `od` `bc` 以及一个 POSIX 兼容的 `sh`。
 
 如果你的 shell 没有 `od` 与 `bc`，也可使用加密完成后的密码
+
+nc+unix2dos, wget 和 curl 三选一即可
 
 ## 加密密码获取方式
 
