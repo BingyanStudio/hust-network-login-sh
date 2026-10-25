@@ -136,53 +136,15 @@ nc_skip_header()
 {
     awk -v final_lf="$1" '
         NR == 1 {
-            line = $0
-            sub(/\r$/, "", line)
-            split(line, status, /[ \t]+/)
-            if (status[1] !~ /^HTTP\/1\.[01]$/ ||
-                status[2] !~ /^[23][0-9][0-9]$/) {
-                bad = 1
-                exit
-            }
+            sub(/\r$/, "")
+            if ($2 !~ /^[23][0-9][0-9]$/) exit 1
             next
         }
         !header_finished {
-            line = $0
-            sub(/\r$/, "", line)
-            if (line == "") {
-                header_finished = 1
-                next
-            }
-            lower = tolower(line)
-            if (lower ~ /^transfer-encoding:/ ||
-                (lower ~ /^content-encoding:/ &&
-                 lower !~ /^content-encoding:[ \t]*identity[ \t]*$/)) {
-                bad = 1
-                exit
-            }
-            if (lower ~ /^content-length:/) {
-                sub(/^[^:]*:[ \t]*/, "", line)
-                sub(/[ \t]*$/, "", line)
-                if (line !~ /^[0-9]+$/ ||
-                    (has_length && expected != line + 0)) {
-                    bad = 1
-                    exit
-                }
-                has_length = 1
-                expected = line + 0
-            }
+            if ($0 ~ /^\r?$/) header_finished = 1
             next
         }
-        {
-            received += length($0) + 1
-            body_lines++
-            print
-        }
-        END {
-            if (body_lines && !final_lf) received--
-            if (bad || !header_finished ||
-                (has_length && received != expected)) exit 1
-        }
+        { print }
     '
 }
 
